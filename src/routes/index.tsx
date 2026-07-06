@@ -13,7 +13,7 @@ import {
   type GroupId,
   type Score,
 } from "@/lib/tournament";
-import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote } from "lucide-react";
+import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, X } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -46,7 +46,6 @@ const PROVINCES = [
 ] as const;
 type Province = (typeof PROVINCES)[number];
 
-// Expanded disciplines list to display gender splits directly in navigation row
 const UI_DISCIPLINES = [
   "Soccer",
   "Volleyball (Men)",
@@ -72,10 +71,12 @@ function Index() {
   const [pinOpen, setPinOpen] = useState(false);
   const [pin, setPin] = useState("");
   const [pinErr, setPinErr] = useState(false);
+  
+  // Search state tracking the user's input
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => { setScores(loadScores()); }, []);
 
-  // Maps UI display selections back to strict underlying tournament core types
   const underlyingDiscipline = useMemo<Discipline>(() => {
     if (uiDiscipline === "Volleyball (Men)" || uiDiscipline === "Volleyball (Women)") {
       return "Volleyball";
@@ -84,7 +85,6 @@ function Index() {
   }, [uiDiscipline]);
 
   const setScore = (matchId: string, s: Score) => {
-    // Uses uiDiscipline string to save Men vs Women distinctly in localStorage
     const key = `${uiDiscipline}::${matchId}`;
     setScores((prev) => {
       const next = { ...prev };
@@ -94,10 +94,21 @@ function Index() {
     });
   };
 
-  const dayMatches = useMemo(
-    () => (day === "ko" ? [] : MATCHES.filter((m) => m.day === day)),
-    [day],
-  );
+  // Filters matches dynamically by both day and team search query
+  const dayMatches = useMemo(() => {
+    if (day === "ko") return [];
+    
+    const baseMatches = MATCHES.filter((m) => m.day === day);
+    const query = searchQuery.trim().toLowerCase();
+    
+    if (!query) return baseMatches;
+    
+    return baseMatches.filter(
+      (m) =>
+        m.teamA.toLowerCase().includes(query) ||
+        m.teamB.toLowerCase().includes(query)
+    );
+  }, [day, searchQuery]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -202,6 +213,31 @@ function Index() {
         </button>
       </div>
 
+      {/* SEARCH BAR ELEMENT (Hidden during Polls or Knockout screen states) */}
+      {day !== "poll" && day !== "ko" && (
+        <div className="mx-auto max-w-6xl px-4 pt-4">
+          <div className="relative flex items-center">
+            <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search team name (e.g. Masvingo, HSC, Mpilo)..."
+              className="w-full rounded-xl border border-border bg-card pl-10 pr-10 py-2.5 text-sm font-medium outline-none transition focus:border-[color:var(--primary)] focus:ring-1 focus:ring-[color:var(--primary)] shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 p-1 rounded-full text-muted-foreground hover:bg-secondary transition"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* CONTENT */}
       <main className="mx-auto max-w-6xl px-4 py-6">
         {day === "poll" ? (
@@ -215,18 +251,26 @@ function Index() {
                 {uiDiscipline} · {DAYS.find((d) => d.id === day)!.label}
               </SectionTitle>
               <div className="mt-3 grid gap-3">
-                {dayMatches.map((m) => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    uiDiscipline={uiDiscipline}
-                    discipline={underlyingDiscipline}
-                    venue={venueFor(m.group, underlyingDiscipline)}
-                    score={scores[`${uiDiscipline}::${m.id}`] ?? null}
-                    admin={admin}
-                    onChange={(s) => setScore(m.id, s)}
-                  />
-                ))}
+                {dayMatches.length > 0 ? (
+                  dayMatches.map((m) => (
+                    <MatchCard
+                      key={m.id}
+                      match={m}
+                      uiDiscipline={uiDiscipline}
+                      discipline={underlyingDiscipline}
+                      venue={venueFor(m.group, underlyingDiscipline)}
+                      score={scores[`${uiDiscipline}::${m.id}`] ?? null}
+                      admin={admin}
+                      onChange={(s) => setScore(m.id, s)}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-card">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {searchQuery ? `No matches found for "${searchQuery}" on this day.` : "No matches scheduled."}
+                    </p>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -396,10 +440,7 @@ function MatchCard({
 }
 
 function StandingsCard({ group, uiDiscipline, discipline, scores }: { group: GroupId; uiDiscipline: UiDiscipline; discipline: Discipline; scores: Record<string, Score> }) {
-  // Compute context-bound standings isolated to the selected UI gender route context
   const rows = computeStandings(group, uiDiscipline as unknown as Discipline, scores);
-  
-  // Fallback check to fallback safely to matching structural discipline references if explicit strings show empty
   const workingRows = rows.length > 0 ? rows : computeStandings(group, discipline, scores);
 
   return (
@@ -623,3 +664,4 @@ function PollView() {
     </div>
   );
 }
+
