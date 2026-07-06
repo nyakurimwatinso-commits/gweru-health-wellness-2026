@@ -40,6 +40,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center flex flex-col items-center justify-center">
+        {/* Custom App Branding Icon */}
         <img 
           src="/icon.png" 
           alt="HSC Logo" 
@@ -48,12 +49,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             e.currentTarget.style.display = 'none';
           }}
         />
+        
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           HSC/MoHCC Wellness Hub
         </h1>
         <p className="mt-2 text-sm text-muted-foreground px-2">
           Something went wrong while loading this section. Tap below to refresh the live results.
         </p>
+        
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -80,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, mobile-web-app-capable=yes" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, mobile-web-app-capable=yes, viewport-fit=cover" },
       { title: "HSC/MoHCC Wellness Festival Results Hub — Gweru 2026" },
       { name: "description", content: "Live results, group standings and knockout brackets for the HSC/MoHCC Wellness Festival Sports Games, Gweru July 2026." },
       { name: "author", content: "HSC/MoHCC" },
@@ -141,3 +144,4 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
+
