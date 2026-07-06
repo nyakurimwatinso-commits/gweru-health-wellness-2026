@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+
+                      import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   DAYS,
@@ -24,9 +25,13 @@ const ADMIN_PIN = "2026";
 const POLL_KEY = "hsc-mohcc-poll-v1";
 const POLL_VOTE_KEY = "hsc-mohcc-poll-vote-v1";
 
+// Updated list containing all 18 participating institutional teams
 const PROVINCES = [
-  "Bulawayo",
-  "Harare",
+  "Bulawayo Metropolitan",
+  "Chitungwiza Hospital",
+  "Harare Metropolitan",
+  "Health Services Commission (HSC)",
+  "Ingutsheni Hospital",
   "Manicaland",
   "Mashonaland Central",
   "Mashonaland East",
@@ -35,6 +40,11 @@ const PROVINCES = [
   "Matabeleland North",
   "Matabeleland South",
   "Midlands",
+  "MoHCC Headquarters",
+  "Mpilo Hospital",
+  "Parirenyatwa Hospital",
+  "Sally Mugabe Hospital",
+  "United Bulawayo Hospitals (UBH)",
 ] as const;
 type Province = (typeof PROVINCES)[number];
 
@@ -168,7 +178,7 @@ function Index() {
           }`}
           style={day === "poll" ? { backgroundImage: "var(--gradient-gold)" } : undefined}
         >
-          <Vote className="h-4 w-4" /> Fans' Poll · Vote for Your Province
+          <Vote className="h-4 w-4" /> Fans' Poll · Vote for Your Team
         </button>
       </div>
 
@@ -513,9 +523,9 @@ function PollView() {
 
   return (
     <div className="space-y-4">
-      <SectionTitle icon={<Vote className="h-4 w-4" />}>Fans' Poll · Your Province</SectionTitle>
+      <SectionTitle icon={<Vote className="h-4 w-4" />}>Fans' Poll · Your Team</SectionTitle>
       <p className="text-sm text-muted-foreground">
-        Cheering from home? Cast your vote for the province you're rooting for. One vote per device — change your mind anytime.
+        Cheering from home? Cast your vote for the team you're rooting for. One vote per device — change your mind anytime.
       </p>
       <div className="grid gap-2">
         {PROVINCES.map((p) => {
