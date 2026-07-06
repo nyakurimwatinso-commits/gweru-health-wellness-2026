@@ -1,5 +1,4 @@
-
-                      import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   DAYS,
@@ -25,7 +24,6 @@ const ADMIN_PIN = "2026";
 const POLL_KEY = "hsc-mohcc-poll-v1";
 const POLL_VOTE_KEY = "hsc-mohcc-poll-vote-v1";
 
-// Updated list containing all 18 participating institutional teams
 const PROVINCES = [
   "Bulawayo Metropolitan",
   "Chitungwiza Hospital",
@@ -48,13 +46,26 @@ const PROVINCES = [
 ] as const;
 type Province = (typeof PROVINCES)[number];
 
+// Expanded disciplines list to display gender splits directly in navigation row
+const UI_DISCIPLINES = [
+  "Soccer",
+  "Volleyball (Men)",
+  "Volleyball (Women)",
+  "Netball",
+  "Darts",
+  "Chess",
+  "Athletics",
+  "Tug of War",
+] as const;
+type UiDiscipline = (typeof UI_DISCIPLINES)[number];
+
 function loadScores(): Record<string, Score> {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
 }
 
 function Index() {
-  const [discipline, setDiscipline] = useState<Discipline>("Soccer");
+  const [uiDiscipline, setUiDiscipline] = useState<UiDiscipline>("Soccer");
   const [day, setDay] = useState<DayId>("mon");
   const [scores, setScores] = useState<Record<string, Score>>({});
   const [admin, setAdmin] = useState(false);
@@ -64,8 +75,17 @@ function Index() {
 
   useEffect(() => { setScores(loadScores()); }, []);
 
+  // Maps UI display selections back to strict underlying tournament core types
+  const underlyingDiscipline = useMemo<Discipline>(() => {
+    if (uiDiscipline === "Volleyball (Men)" || uiDiscipline === "Volleyball (Women)") {
+      return "Volleyball";
+    }
+    return uiDiscipline as Discipline;
+  }, [uiDiscipline]);
+
   const setScore = (matchId: string, s: Score) => {
-    const key = `${discipline}::${matchId}`;
+    // Uses uiDiscipline string to save Men vs Women distinctly in localStorage
+    const key = `${uiDiscipline}::${matchId}`;
     setScores((prev) => {
       const next = { ...prev };
       if (s === null) delete next[key]; else next[key] = s;
@@ -127,12 +147,12 @@ function Index() {
       <div className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-6xl">
           <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
-            {DISCIPLINES.map((d) => {
-              const active = d === discipline;
+            {UI_DISCIPLINES.map((d) => {
+              const active = d === uiDiscipline;
               return (
                 <button
                   key={d}
-                  onClick={() => setDiscipline(d)}
+                  onClick={() => setUiDiscipline(d)}
                   className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold transition ${
                     active
                       ? "text-white shadow-md"
@@ -187,21 +207,22 @@ function Index() {
         {day === "poll" ? (
           <PollView />
         ) : day === "ko" ? (
-          <KnockoutView />
+          <KnockoutView uiDiscipline={uiDiscipline} />
         ) : (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <section>
               <SectionTitle icon={<Clock className="h-4 w-4" />}>
-                {discipline} · {DAYS.find((d) => d.id === day)!.label}
+                {uiDiscipline} · {DAYS.find((d) => d.id === day)!.label}
               </SectionTitle>
               <div className="mt-3 grid gap-3">
                 {dayMatches.map((m) => (
                   <MatchCard
                     key={m.id}
                     match={m}
-                    discipline={discipline}
-                    venue={venueFor(m.group, discipline)}
-                    score={scores[`${discipline}::${m.id}`] ?? null}
+                    uiDiscipline={uiDiscipline}
+                    discipline={underlyingDiscipline}
+                    venue={venueFor(m.group, underlyingDiscipline)}
+                    score={scores[`${uiDiscipline}::${m.id}`] ?? null}
                     admin={admin}
                     onChange={(s) => setScore(m.id, s)}
                   />
@@ -213,7 +234,7 @@ function Index() {
               <SectionTitle icon={<Trophy className="h-4 w-4" />}>Live Standings</SectionTitle>
               <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
                 {(Object.keys(GROUPS) as GroupId[]).map((g) => (
-                  <StandingsCard key={g} group={g} discipline={discipline} scores={scores} />
+                  <StandingsCard key={g} group={g} uiDiscipline={uiDiscipline} discipline={underlyingDiscipline} scores={scores} />
                 ))}
               </div>
             </section>
@@ -315,9 +336,10 @@ function ScoreBox({
 }
 
 function MatchCard({
-  match, discipline, venue, score, admin, onChange,
+  match, uiDiscipline, discipline, venue, score, admin, onChange,
 }: {
   match: (typeof MATCHES)[number];
+  uiDiscipline: UiDiscipline;
   discipline: Discipline;
   venue: string;
   score: Score;
@@ -332,7 +354,7 @@ function MatchCard({
       <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-secondary/60 px-4 py-2 text-[11px] font-bold uppercase tracking-wider">
         <span className="rounded-full bg-[color:var(--primary)]/10 px-2.5 py-0.5 text-[color:var(--primary-deep)]">Group {match.group}</span>
         <span className="flex items-center gap-1 text-muted-foreground"><Clock className="h-3 w-3" />{match.time}</span>
-        <span className="hidden truncate text-muted-foreground sm:inline">{discipline}</span>
+        <span className="hidden truncate text-muted-foreground sm:inline">{uiDiscipline}</span>
       </div>
       <div className="px-4 py-4">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
@@ -373,8 +395,13 @@ function MatchCard({
   );
 }
 
-function StandingsCard({ group, discipline, scores }: { group: GroupId; discipline: Discipline; scores: Record<string, Score> }) {
-  const rows = computeStandings(group, discipline, scores);
+function StandingsCard({ group, uiDiscipline, discipline, scores }: { group: GroupId; uiDiscipline: UiDiscipline; discipline: Discipline; scores: Record<string, Score> }) {
+  // Compute context-bound standings isolated to the selected UI gender route context
+  const rows = computeStandings(group, uiDiscipline as unknown as Discipline, scores);
+  
+  // Fallback check to fallback safely to matching structural discipline references if explicit strings show empty
+  const workingRows = rows.length > 0 ? rows : computeStandings(group, discipline, scores);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-2.5" style={{ backgroundImage: "var(--gradient-hero)" }}>
@@ -395,7 +422,7 @@ function StandingsCard({ group, discipline, scores }: { group: GroupId; discipli
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => {
+            {workingRows.map((r, i) => {
               const qualifies = i < 2;
               return (
                 <tr
@@ -422,7 +449,7 @@ function StandingsCard({ group, discipline, scores }: { group: GroupId; discipli
   );
 }
 
-function KnockoutView() {
+function KnockoutView({ uiDiscipline }: { uiDiscipline: UiDiscipline }) {
   const rounds = [
     { title: "Quarter-Finals · Thu 09 July", items: KNOCKOUTS.filter((k) => k.round === "QF") },
     { title: "Semi-Finals · Thu 09 July", items: KNOCKOUTS.filter((k) => k.round === "SF") },
@@ -430,7 +457,7 @@ function KnockoutView() {
   ];
   return (
     <div className="space-y-6">
-      <SectionTitle icon={<Trophy className="h-4 w-4" />}>Knockout Bracket</SectionTitle>
+      <SectionTitle icon={<Trophy className="h-4 w-4" />}>{uiDiscipline} · Knockout Bracket</SectionTitle>
       {rounds.map((r) => (
         <div key={r.title}>
           <h3 className="mb-2 text-xs font-black uppercase tracking-widest text-muted-foreground">{r.title}</h3>
