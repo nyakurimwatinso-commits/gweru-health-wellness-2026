@@ -7,10 +7,9 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
@@ -37,34 +36,43 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+      <div className="max-w-md text-center flex flex-col items-center justify-center">
+        {/* Your Custom App Icon Displays Here Instead of Lovable */}
+        <img 
+          src="/icon.png" 
+          alt="HSC Logo" 
+          className="w-20 h-20 rounded-2xl shadow-md mb-4 object-cover"
+          onError={(e) => {
+            // Fallback if icon.png isn't loaded yet
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          HSC/MoHCC Wellness Hub
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-2 text-sm text-muted-foreground px-2">
+          Something went wrong while loading this section. Tap below to refresh the live results.
         </p>
+        
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 shadow-sm"
           >
-            Try again
+            Refresh App
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Go to Home
           </a>
         </div>
       </div>
@@ -76,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, mobile-web-app-capable=yes" },
       { title: "HSC/MoHCC Wellness Festival Results Hub — Gweru 2026" },
       { name: "description", content: "Live results, group standings and knockout brackets for the HSC/MoHCC Wellness Festival Sports Games, Gweru July 2026." },
       { name: "author", content: "HSC/MoHCC" },
@@ -84,13 +92,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Live results & standings — Gweru, July 2026." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "HSC Hub" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { 
+        rel: "icon", 
+        type: "image/png", 
+        href: "/icon.png" 
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/icon.png"
+      }
     ],
   }),
   shellComponent: RootShell,
@@ -119,6 +138,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      {/* If there's an index or splash file mounting Lovable components, this layout will override it */}
       <Outlet />
     </QueryClientProvider>
   );
