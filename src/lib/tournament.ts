@@ -1,5 +1,5 @@
 export type GroupId = "A" | "B" | "C" | "D";
-export type DayId = "mon" | "tue" | "wed" | "ko";
+export type DayId = "mon" | "tue" | "wed" | "ko" | "poll";
 export type Discipline = "Chess" | "Soccer" | "Volleyball" | "Netball" | "Snooker" | "Darts" | "Athletics";
 
 export const DISCIPLINES: Discipline[] = [
