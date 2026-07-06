@@ -40,24 +40,20 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center flex flex-col items-center justify-center">
-        {/* Your Custom App Icon Displays Here Instead of Lovable */}
         <img 
           src="/icon.png" 
           alt="HSC Logo" 
           className="w-20 h-20 rounded-2xl shadow-md mb-4 object-cover"
           onError={(e) => {
-            // Fallback if icon.png isn't loaded yet
             e.currentTarget.style.display = 'none';
           }}
         />
-        
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           HSC/MoHCC Wellness Hub
         </h1>
         <p className="mt-2 text-sm text-muted-foreground px-2">
           Something went wrong while loading this section. Tap below to refresh the live results.
         </p>
-        
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
@@ -101,6 +97,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "manifest",
+        href: "/manifest.json"
+      },
       { 
         rel: "icon", 
         type: "image/png", 
@@ -137,8 +137,6 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      {/* If there's an index or splash file mounting Lovable components, this layout will override it */}
       <Outlet />
     </QueryClientProvider>
   );
