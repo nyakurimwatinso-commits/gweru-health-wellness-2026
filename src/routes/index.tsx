@@ -13,7 +13,7 @@ import {
   type GroupId,
   type Score,
 } from "@/lib/tournament";
-import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal } from "lucide-react";
+import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -21,6 +21,22 @@ export const Route = createFileRoute("/")({
 
 const STORAGE_KEY = "hsc-mohcc-scores-v1";
 const ADMIN_PIN = "2026";
+const POLL_KEY = "hsc-mohcc-poll-v1";
+const POLL_VOTE_KEY = "hsc-mohcc-poll-vote-v1";
+
+const PROVINCES = [
+  "Bulawayo",
+  "Harare",
+  "Manicaland",
+  "Mashonaland Central",
+  "Mashonaland East",
+  "Mashonaland West",
+  "Masvingo",
+  "Matabeleland North",
+  "Matabeleland South",
+  "Midlands",
+] as const;
+type Province = (typeof PROVINCES)[number];
 
 function loadScores(): Record<string, Score> {
   if (typeof window === "undefined") return {};
@@ -143,11 +159,24 @@ function Index() {
             );
           })}
         </div>
+        <button
+          onClick={() => setDay("poll")}
+          className={`mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 px-3 py-2.5 text-sm font-black uppercase tracking-wide transition ${
+            day === "poll"
+              ? "border-transparent text-[color:var(--accent-foreground)] shadow-lg"
+              : "border-[color:var(--gold)] bg-card text-[color:var(--primary-deep)] hover:bg-[color:var(--gold)]/10"
+          }`}
+          style={day === "poll" ? { backgroundImage: "var(--gradient-gold)" } : undefined}
+        >
+          <Vote className="h-4 w-4" /> Fans' Poll · Vote for Your Province
+        </button>
       </div>
 
       {/* CONTENT */}
       <main className="mx-auto max-w-6xl px-4 py-6">
-        {day === "ko" ? (
+        {day === "poll" ? (
+          <PollView />
+        ) : day === "ko" ? (
           <KnockoutView />
         ) : (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
