@@ -460,3 +460,129 @@ function KnockoutView() {
     </div>
   );
 }
+
+function loadVotes(): Record<Province, number> {
+  const base = Object.fromEntries(PROVINCES.map((p) => [p, 0])) as Record<Province, number>;
+  if (typeof window === "undefined") return base;
+  try {
+    const raw = JSON.parse(localStorage.getItem(POLL_KEY) || "{}");
+    for (const p of PROVINCES) if (typeof raw[p] === "number") base[p] = raw[p];
+  } catch {}
+  return base;
+}
+
+function PollView() {
+  const [votes, setVotes] = useState<Record<Province, number>>(() =>
+    Object.fromEntries(PROVINCES.map((p) => [p, 0])) as Record<Province, number>,
+  );
+  const [myVote, setMyVote] = useState<Province | null>(null);
+
+  useEffect(() => {
+    setVotes(loadVotes());
+    try {
+      const v = localStorage.getItem(POLL_VOTE_KEY) as Province | null;
+      if (v && (PROVINCES as readonly string[]).includes(v)) setMyVote(v);
+    } catch {}
+  }, []);
+
+  const total = Object.values(votes).reduce((s, n) => s + n, 0);
+  const leader = total > 0 ? (Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0] as Province) : null;
+
+  const cast = (p: Province) => {
+    setVotes((prev) => {
+      const next = { ...prev };
+      if (myVote) next[myVote] = Math.max(0, (next[myVote] ?? 0) - 1);
+      next[p] = (next[p] ?? 0) + 1;
+      try { localStorage.setItem(POLL_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setMyVote(p);
+    try { localStorage.setItem(POLL_VOTE_KEY, p); } catch {}
+  };
+
+  const clear = () => {
+    if (!myVote) return;
+    setVotes((prev) => {
+      const next = { ...prev, [myVote]: Math.max(0, (prev[myVote] ?? 0) - 1) };
+      try { localStorage.setItem(POLL_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+    setMyVote(null);
+    try { localStorage.removeItem(POLL_VOTE_KEY); } catch {}
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionTitle icon={<Vote className="h-4 w-4" />}>Fans' Poll · Your Province</SectionTitle>
+      <p className="text-sm text-muted-foreground">
+        Cheering from home? Cast your vote for the province you're rooting for. One vote per device — change your mind anytime.
+      </p>
+      <div className="grid gap-2">
+        {PROVINCES.map((p) => {
+          const count = votes[p] ?? 0;
+          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+          const mine = myVote === p;
+          const isLeader = leader === p && total > 0;
+          return (
+            <button
+              key={p}
+              onClick={() => cast(p)}
+              className={`group relative overflow-hidden rounded-2xl border-2 bg-card p-3 text-left shadow-sm transition active:scale-[0.99] ${
+                mine ? "border-[color:var(--primary)]" : "border-border hover:border-[color:var(--primary)]/60"
+              }`}
+            >
+              <div
+                aria-hidden
+                className="absolute inset-y-0 left-0 transition-all"
+                style={{
+                  width: `${pct}%`,
+                  backgroundImage: isLeader ? "var(--gradient-gold)" : "var(--gradient-hero)",
+                  opacity: isLeader ? 0.25 : 0.15,
+                }}
+              />
+              <div className="relative flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-black text-white shadow-md"
+                    style={{ backgroundImage: isLeader ? "var(--gradient-gold)" : "var(--gradient-hero)" }}
+                  >
+                    {p.charAt(0)}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-black text-foreground sm:text-base">{p}</div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {count} vote{count === 1 ? "" : "s"} · {pct}%
+                      {mine && <span className="ml-2 text-[color:var(--primary-deep)]">· Your pick</span>}
+                      {isLeader && <span className="ml-2 text-[color:var(--gold-deep)]">· Leading</span>}
+                    </div>
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${
+                    mine
+                      ? "text-[color:var(--accent-foreground)]"
+                      : "bg-secondary text-secondary-foreground group-hover:bg-[color:var(--primary)]/10 group-hover:text-[color:var(--primary-deep)]"
+                  }`}
+                  style={mine ? { backgroundImage: "var(--gradient-gold)" } : undefined}
+                >
+                  {mine ? "Voted" : "Vote"}
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span>Total votes: <b className="text-foreground">{total}</b></span>
+        {myVote && (
+          <button onClick={clear} className="font-semibold text-destructive hover:underline">
+            Clear my vote
+          </button>
+        )}
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Votes are stored locally on this device — a fun cheer meter, not an official tally.
+      </p>
+    </div>
+  );
+}
