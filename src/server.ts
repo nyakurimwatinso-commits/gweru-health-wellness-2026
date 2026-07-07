@@ -7,6 +7,11 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
+// Define the environment type to include your new KV namespace binding
+type Env = {
+  HSC_SCORES: KVNamespace;
+};
+
 let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
@@ -18,8 +23,6 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
-// h3 swallows in-handler throws into a normal 500 Response with body
-// {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
 async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
   if (response.status < 500) return response;
   const contentType = response.headers.get("content-type") ?? "";
@@ -44,8 +47,94 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+// Helper to provide standard CORS headers so your app won't block requests
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Content-Type": "application/json",
+};
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const url = new URL(request.url);
+    const typedEnv = env as Env;
+
+    // Handle Preflight OPTIONS requests for CORS safety
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    // -------------------------------------------------------------
+    // DATABASE ENDPOINT: /api/scores
+    // -------------------------------------------------------------
+    if (url.pathname === "/api/scores") {
+      try {
+        if (request.method === "GET") {
+          const rawData = await typedEnv.HSC_SCORES.get("match_data");
+          return new Response(rawData || JSON.stringify({ matches: [] }), {
+            status: 200,
+            headers: corsHeaders,
+          });
+        }
+
+        if (request.method === "POST") {
+          const body = await request.text();
+          // Simple validation to ensure it's valid json
+          JSON.parse(body); 
+          await typedEnv.HSC_SCORES.put("match_data", body);
+          return new Response(JSON.stringify({ success: true, message: "Scores updated successfully" }), {
+            status: 200,
+            headers: corsHeaders,
+          });
+        }
+      } catch (dbError: any) {
+        return new Response(JSON.stringify({ error: dbError.message }), {
+          status: 500,
+          headers: corsHeaders,
+        });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // DATABASE ENDPOINT: /api/vote
+    // -------------------------------------------------------------
+    if (url.pathname === "/api/vote") {
+      try {
+        if (request.method === "GET") {
+          const rawVotes = await typedEnv.HSC_SCORES.get("poll_votes");
+          return new Response(rawVotes || JSON.stringify({}), {
+            status: 200,
+            headers: corsHeaders,
+          });
+        }
+
+        if (request.method === "POST") {
+          const { teamName } = await request.json() as { teamName: string };
+          if (!teamName) {
+            return new Response(JSON.stringify({ error: "Missing teamName" }), { status: 400, headers: corsHeaders });
+          }
+
+          // Get existing votes, increment target, save back
+          const rawVotes = await typedEnv.HSC_SCORES.get("poll_votes");
+          const votesMap = rawVotes ? JSON.parse(rawVotes) : {};
+          votesMap[teamName] = (votesMap[teamName] || 0) + 1;
+
+          await typedEnv.HSC_SCORES.put("poll_votes", JSON.stringify(votesMap));
+          return new Response(JSON.stringify({ success: true, votes: votesMap }), {
+            status: 200,
+            headers: corsHeaders,
+          });
+        }
+      } catch (voteError: any) {
+        return new Response(JSON.stringify({ error: voteError.message }), {
+          status: 500,
+          headers: corsHeaders,
+        });
+      }
+    }
+
+    // Standard frontend rendering fallback route
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
