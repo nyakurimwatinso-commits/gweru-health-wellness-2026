@@ -8,15 +8,14 @@ import {
   computeStandings,
   venueFor,
 } from "@/lib/tournament";
-import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw } from "lucide-react";
+import { MapPin, Lock, Unlock, Sparkles, Vote, Search, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: () => <IndexHub />,
 });
 
 const ADMIN_PIN = "2026";
 const POLL_VOTE_KEY = "hsc-mohcc-poll-vote-v1";
-
 const SCORES_API_URL = "/api/scores";
 const VOTE_API_URL = "/api/vote";
 
@@ -52,7 +51,7 @@ const UI_DISCIPLINES = [
   "Tug of War",
 ];
 
-function Index() {
+function IndexHub() {
   const [uiDiscipline, setUiDiscipline] = useState<string>("Soccer");
   const [day, setDay] = useState<string>("mon");
   
@@ -73,17 +72,12 @@ function Index() {
       const scoresRes = await fetch(SCORES_API_URL);
       if (scoresRes.ok) {
         const data = await scoresRes.json();
-        if (data && typeof data === "object") {
-          setScores(data);
-        }
+        if (data && typeof data === "object") setScores(data);
       }
-
       const votesRes = await fetch(VOTE_API_URL);
       if (votesRes.ok) {
         const data = await votesRes.json();
-        if (data && typeof data === "object") {
-          setVotes(data);
-        }
+        if (data && typeof data === "object") setVotes(data);
       }
     } catch (err) {
       console.error(err);
@@ -96,9 +90,7 @@ function Index() {
     fetchCloudData();
     try {
       const savedPick = localStorage.getItem(POLL_VOTE_KEY);
-      if (savedPick) {
-        setMyVote(savedPick);
-      }
+      if (savedPick) setMyVote(savedPick);
     } catch (e) {}
 
     const syncInterval = setInterval(fetchCloudData, 20000);
@@ -115,13 +107,11 @@ function Index() {
   const setScore = async (matchId: string, s: any) => {
     const key = `${uiDiscipline}::${matchId}`;
     const updatedScores = { ...scores };
-    
     if (s === null) {
       delete updatedScores[key];
     } else {
       updatedScores[key] = s;
     }
-    
     setScores(updatedScores);
 
     try {
@@ -150,9 +140,7 @@ function Index() {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.votes) {
-          setVotes(data.votes);
-        }
+        if (data.votes) setVotes(data.votes);
       }
     } catch (err) {
       console.error(err);
@@ -171,6 +159,8 @@ function Index() {
     );
   }, [day, searchQuery]);
 
+  const totalVotes = Object.values(votes).reduce((s, n) => s + n, 0);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="relative overflow-hidden text-white bg-slate-900 px-4 py-10">
@@ -179,9 +169,7 @@ function Index() {
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs">
               <Sparkles className="h-3.5 w-3.5" /> Wellness Festival 2026
             </div>
-            <h1 className="mt-3 text-3xl font-black sm:text-5xl">
-              HSC/MoHCC Results Hub
-            </h1>
+            <h1 className="mt-3 text-3xl font-black sm:text-5xl">HSC/MoHCC Results Hub</h1>
             <p className="mt-2 flex items-center gap-1 text-sm text-white/80">
               <MapPin className="h-4 w-4" /> Gweru
             </p>
@@ -248,35 +236,119 @@ function Index() {
 
       <main className="mx-auto max-w-6xl px-4 py-6">
         {day === "poll" ? (
-          <PollView votes={votes} myVote={myVote} onCast={handleCastVote} />
+          <div className="space-y-4">
+            <h2 className="font-bold">Live Fan Standings Poll</h2>
+            <div className="space-y-2">
+              {PROVINCES.map((p) => {
+                const count = votes[p] ?? 0;
+                const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => handleCastVote(p)}
+                    disabled={myVote !== null && myVote !== p}
+                    className="w-full border rounded-xl p-3 text-left flex justify-between bg-card relative overflow-hidden"
+                  >
+                    <div className="absolute inset-y-0 left-0 bg-blue-500/10" style={{ width: pct + "%" }} />
+                    <span className="font-bold z-10">{p}</span>
+                    <span className="text-xs font-bold text-muted-foreground z-10">{count} votes ({pct}%)</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         ) : day === "ko" ? (
-          <KnockoutView uiDiscipline={uiDiscipline} />
+          <div className="space-y-4">
+            <h2 className="font-bold">{uiDiscipline} - Knockouts</h2>
+            {KNOCKOUTS.filter((k: any) => k.round === "QF" || k.round === "SF" || k.round === "Final").map((m: any) => (
+              <div key={m.id} className="border p-4 rounded-xl bg-card">
+                <div className="font-bold text-sm">{m.label}: {m.matchup}</div>
+                <div className="text-xs text-muted-foreground mt-1">{m.date} - {m.time} | {m.venue}</div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-            <section className="space-y-3">
+            <div className="space-y-3">
               {dayMatches.length > 0 ? (
-                dayMatches.map((m) => (
-                  <MatchCard
-                    key={m.id}
-                    match={m}
-                    uiDiscipline={uiDiscipline}
-                    venue={venueFor(m.group, underlyingDiscipline as any)}
-                    score={scores[`${uiDiscipline}::${m.id}`] ?? null}
-                    admin={admin}
-                    onChange={(s) => setScore(m.id, s)}
-                  />
-                ))
+                dayMatches.map((m: any) => {
+                  const matchScore = scores[`${uiDiscipline}::${m.id}`] ?? null;
+                  return (
+                    <div key={m.id} className="rounded-2xl border bg-card p-4 shadow-sm">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground border-b pb-2 mb-3">
+                        <span>Group {m.group}</span>
+                        <span>{m.time}</span>
+                      </div>
+                      <div className="grid grid-cols-[1fr_auto_auto_auto_1fr] items-center gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{m.teamA.charAt(0)}</span>
+                          <div className="min-w-0"><div className="truncate text-sm font-bold">{m.teamA}</div></div>
+                        </div>
+                        {admin ? (
+                          <input
+                            type="number"
+                            value={matchScore?.a ?? ""}
+                            onChange={(e) => setScore(m.id, e.target.value === "" ? null : { a: parseInt(e.target.value), b: matchScore?.b ?? 0 })}
+                            className="w-12 border rounded text-center font-bold"
+                          />
+                        ) : (
+                          <span className="font-bold text-lg px-2">{matchScore?.a ?? "-"}</span>
+                        )}
+                        <span>:</span>
+                        {admin ? (
+                          <input
+                            type="number"
+                            value={matchScore?.b ?? ""}
+                            onChange={(e) => setScore(m.id, e.target.value === "" ? null : { a: matchScore?.a ?? 0, b: parseInt(e.target.value) })}
+                            className="w-12 border rounded text-center font-bold"
+                          />
+                        ) : (
+                          <span className="font-bold text-lg px-2">{matchScore?.b ?? "-"}</span>
+                        )}
+                        <div className="text-right flex items-center justify-end gap-2">
+                          <div className="truncate text-sm font-bold">{m.teamB}</div>
+                          <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{m.teamB.charAt(0)}</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">{venueFor(m.group, underlyingDiscipline as any)}</div>
+                    </div>
+                  );
+                })
               ) : (
                 <div className="text-center py-12 border border-dashed rounded-2xl">
-                  <p className="text-sm text-muted-foreground">No matches schedule criteria matches.</p>
+                  <p className="text-sm text-muted-foreground">No matches scheduled.</p>
                 </div>
               )}
-            </section>
-            <section className="space-y-4">
-              {Object.keys(GROUPS).map((g) => (
-                <StandingsCard key={g} group={g as any} uiDiscipline={uiDiscipline} discipline={underlyingDiscipline} scores={scores} />
-              ))}
-            </section>
+            </div>
+            <div className="space-y-4">
+              {Object.keys(GROUPS).map((g) => {
+                const rows = computeStandings(g as any, uiDiscipline as any, scores);
+                const workingRows = rows.length > 0 ? rows : computeStandings(g as any, underlyingDiscipline as any, scores);
+                return (
+                  <div key={g} className="rounded-2xl border overflow-hidden">
+                    <div className="bg-slate-800 text-white p-2 font-bold text-sm">Group {g}</div>
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-muted">
+                        <tr>
+                          <th className="p-2">Team</th>
+                          <th className="p-2 text-center">P</th>
+                          <th className="p-2 text-center">Pts</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {workingRows.map((r: any) => (
+                          <tr key={r.team} className="border-t">
+                            <td className="p-2 font-medium">{r.team}</td>
+                            <td className="p-2 text-center">{r.P}</td>
+                            <td className="p-2 text-center font-bold">{r.Pts}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </main>
@@ -308,129 +380,6 @@ function Index() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function TeamBadge({ name, group }: { name: string; group: any }) {
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{name.charAt(0)}</span>
-      <div className="min-w-0">
-        <div className="truncate text-sm font-bold">{name}</div>
-        <div className="text-[10px] text-muted-foreground">Group {group}</div>
-      </div>
-    </div>
-  );
-}
-
-function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: { match: any; uiDiscipline: string; venue: string; score: any; admin: boolean; onChange: (s: any) => void }) {
-  return (
-    <div className="rounded-2xl border bg-card p-4 shadow-sm">
-      <div className="flex items-center justify-between text-xs text-muted-foreground border-b pb-2 mb-3">
-        <span>Group {match.group}</span>
-        <span>{match.time}</span>
-      </div>
-      <div className="grid grid-cols-[1fr_auto_auto_auto_1fr] items-center gap-2">
-        <TeamBadge name={match.teamA} group={match.group} />
-        {admin ? (
-          <input
-            type="number"
-            value={score?.a ?? ""}
-            onChange={(e) => onChange(e.target.value === "" ? null : { a: parseInt(e.target.value), b: score?.b ?? 0 })}
-            className="w-12 border rounded text-center font-bold"
-          />
-        ) : (
-          <span className="font-bold text-lg px-2">{score?.a ?? "-"}</span>
-        )}
-        <span>:</span>
-        {admin ? (
-          <input
-            type="number"
-            value={score?.b ?? ""}
-            onChange={(e) => onChange(e.target.value === "" ? null : { a: score?.a ?? 0, b: parseInt(e.target.value) })}
-            className="w-12 border rounded text-center font-bold"
-          />
-        ) : (
-          <span className="font-bold text-lg px-2">{score?.b ?? "-"}</span>
-        )}
-        <div className="text-right flex items-center justify-end gap-2">
-          <div className="truncate text-sm font-bold">{match.teamB}</div>
-          <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{match.teamB.charAt(0)}</span>
-        </div>
-      </div>
-      <div className="text-xs text-muted-foreground mt-2">{venue}</div>
-    </div>
-  );
-}
-
-function StandingsCard({ group, uiDiscipline, discipline, scores }: { group: any; uiDiscipline: string; discipline: any; scores: any }) {
-  const rows = computeStandings(group, uiDiscipline as any, scores);
-  const workingRows = rows.length > 0 ? rows : computeStandings(group, discipline, scores);
-
-  return (
-    <div className="rounded-2xl border overflow-hidden">
-      <div className="bg-slate-800 text-white p-2 font-bold text-sm">Group {group}</div>
-      <table className="w-full text-xs text-left">
-        <thead className="bg-muted">
-          <tr>
-            <th className="p-2">Team</th>
-            <th className="p-2 text-center">P</th>
-            <th className="p-2 text-center">Pts</th>
-          </tr>
-        </thead>
-        <tbody>
-          {workingRows.map((r: any) => (
-            <tr key={r.team} className="border-t">
-              <td className="p-2 font-medium">{r.team}</td>
-              <td className="p-2 text-center">{r.P}</td>
-              <td className="p-2 text-center font-bold">{r.Pts}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function KnockoutView({ uiDiscipline }: { uiDiscipline: string }) {
-  const items = KNOCKOUTS.filter((k: any) => k.round === "QF" || k.round === "SF" || k.round === "Final");
-  return (
-    <div className="space-y-4">
-      <h2 className="font-bold">{uiDiscipline} - Knockouts</h2>
-      {items.map((m: any) => (
-        <div key={m.id} className="border p-4 rounded-xl bg-card">
-          <div className="font-bold text-sm">{m.label}: {m.matchup}</div>
-          <div className="text-xs text-muted-foreground mt-1">{m.date} - {m.time} | {m.venue}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function PollView({ votes, myVote, onCast }: { votes: Record<string, number>; myVote: string | null; onCast: (p: string) => void }) {
-  const total = Object.values(votes).reduce((s, n) => s + n, 0);
-  return (
-    <div className="space-y-4">
-      <h2 className="font-bold">Live Fan Standings Poll</h2>
-      <div className="space-y-2">
-        {PROVINCES.map((p) => {
-          const count = votes[p] ?? 0;
-          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-          return (
-            <button
-              key={p}
-              onClick={() => onCast(p)}
-              disabled={myVote !== null && myVote !== p}
-              className="w-full border rounded-xl p-3 text-left flex justify-between bg-card relative overflow-hidden"
-            >
-              <div className="absolute inset-y-0 left-0 bg-blue-500/10" style={{ width: pct + "%" }} />
-              <span className="font-bold z-10">{p}</span>
-              <span className="text-xs font-bold text-muted-foreground z-10">{count} votes ({pct}%)</span>
-            </button>
-          );
-        })}
-      </div>
     </div>
   );
 }
