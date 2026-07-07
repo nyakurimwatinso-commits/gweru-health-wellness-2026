@@ -7,12 +7,8 @@ import {
   MATCHES,
   computeStandings,
   venueFor,
-  type DayId,
-  type Discipline,
-  type GroupId,
-  type Score,
 } from "@/lib/tournament";
-import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, X, RefreshCw } from "lucide-react";
+import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -43,9 +39,7 @@ const PROVINCES = [
   "Parirenyatwa Hospital",
   "Sally Mugabe Hospital",
   "United Bulawayo Hospitals (UBH)",
-] as const;
-
-type Province = typeof PROVINCES[number];
+];
 
 const UI_DISCIPLINES = [
   "Soccer",
@@ -56,17 +50,15 @@ const UI_DISCIPLINES = [
   "Chess",
   "Athletics",
   "Tug of War",
-] as const;
-
-type UiDiscipline = typeof UI_DISCIPLINES[number];
+];
 
 function Index() {
-  const [uiDiscipline, setUiDiscipline] = useState<UiDiscipline>("Soccer");
-  const [day, setDay] = useState<DayId>("mon");
+  const [uiDiscipline, setUiDiscipline] = useState("Soccer");
+  const [day, setDay] = useState("mon");
   
-  const [scores, setScores] = useState<Record<string, Score>>({});
-  const [votes, setVotes] = useState<Record<string, number>>({});
-  const [myVote, setMyVote] = useState<Province | null>(null);
+  const [scores, setScores] = useState({});
+  const [votes, setVotes] = useState({});
+  const [myVote, setMyVote] = useState(null);
   
   const [admin, setAdmin] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
@@ -103,25 +95,25 @@ function Index() {
   useEffect(() => {
     fetchCloudData();
     try {
-      const savedPick = localStorage.getItem(POLL_VOTE_KEY) as Province | null;
-      if (savedPick && (PROVINCES as readonly string[]).includes(savedPick)) {
+      const savedPick = localStorage.getItem(POLL_VOTE_KEY);
+      if (savedPick) {
         setMyVote(savedPick);
       }
-    } catch {}
+    } catch (e) {}
 
     const syncInterval = setInterval(fetchCloudData, 20000);
     return () => clearInterval(syncInterval);
   }, []);
 
-  const underlyingDiscipline = useMemo<Discipline>(() => {
+  const underlyingDiscipline = useMemo(() => {
     if (uiDiscipline === "Volleyball (Men)" || uiDiscipline === "Volleyball (Women)") {
-      return "Volleyball" as Discipline;
+      return "Volleyball";
     }
-    return uiDiscipline as unknown as Discipline;
+    return uiDiscipline;
   }, [uiDiscipline]);
 
-  const setScore = async (matchId: string, s: Score) => {
-    const key = `${uiDiscipline}::${matchId}`;
+  const setScore = async (matchId, s) => {
+    const key = uiDiscipline + "::" + matchId;
     const updatedScores = { ...scores };
     
     if (s === null) {
@@ -143,12 +135,12 @@ function Index() {
     }
   };
 
-  const handleCastVote = async (p: Province) => {
+  const handleCastVote = async (p) => {
     if (myVote === p) return;
     setMyVote(p);
     try {
       localStorage.setItem(POLL_VOTE_KEY, p);
-    } catch {}
+    } catch (e) {}
 
     try {
       const res = await fetch(VOTE_API_URL, {
@@ -196,7 +188,7 @@ function Index() {
           </div>
           <div className="flex gap-2">
             <button onClick={fetchCloudData} className="rounded-xl bg-white/10 p-3 hover:bg-white/20">
-              <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={"h-5 w-5 " + (loading ? "animate-spin" : "")} />
             </button>
             <button onClick={() => (admin ? setAdmin(false) : setPinOpen(true))} className="rounded-xl bg-white/10 p-3 hover:bg-white/20">
               {admin ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
@@ -211,9 +203,7 @@ function Index() {
             <button
               key={d}
               onClick={() => setUiDiscipline(d)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${
-                d === uiDiscipline ? "bg-slate-900 text-white" : "bg-muted"
-              }`}
+              className={"shrink-0 rounded-full px-4 py-2 text-sm font-bold " + (d === uiDiscipline ? "bg-slate-900 text-white" : "bg-muted")}
             >
               {d}
             </button>
@@ -227,9 +217,7 @@ function Index() {
             <button
               key={d.id}
               onClick={() => setDay(d.id)}
-              className={`rounded-xl border key-button p-2.5 text-sm font-bold ${
-                d.id === day ? "bg-slate-900 text-white" : "bg-card"
-              }`}
+              className={"rounded-xl border p-2.5 text-sm font-bold " + (d.id === day ? "bg-slate-900 text-white" : "bg-card")}
             >
               {d.label}
             </button>
@@ -237,9 +225,7 @@ function Index() {
         </div>
         <button
           onClick={() => setDay("poll")}
-          className={`w-full flex items-center justify-center gap-2 rounded-xl border p-2.5 text-sm font-black uppercase tracking-wide ${
-            day === "poll" ? "bg-amber-500 text-slate-900" : "bg-card text-amber-600 border-amber-500"
-          }`}
+          className={"w-full flex items-center justify-center gap-2 rounded-xl border p-2.5 text-sm font-black uppercase tracking-wide " + (day === "poll" ? "bg-amber-500 text-slate-900" : "bg-card text-amber-600 border-amber-500")}
         >
           <Vote className="h-4 w-4" /> Live Fans' Poll
         </button>
@@ -275,7 +261,7 @@ function Index() {
                     match={m}
                     uiDiscipline={uiDiscipline}
                     venue={venueFor(m.group, underlyingDiscipline)}
-                    score={scores[`${uiDiscipline}::${m.id}`] ?? null}
+                    score={scores[uiDiscipline + "::" + m.id] ?? null}
                     admin={admin}
                     onChange={(s) => setScore(m.id, s)}
                   />
@@ -287,7 +273,7 @@ function Index() {
               )}
             </section>
             <section className="space-y-4">
-              {(Object.keys(GROUPS) as GroupId[]).map((g) => (
+              {Object.keys(GROUPS).map((g) => (
                 <StandingsCard key={g} group={g} uiDiscipline={uiDiscipline} discipline={underlyingDiscipline} scores={scores} />
               ))}
             </section>
@@ -326,7 +312,7 @@ function Index() {
   );
 }
 
-function TeamBadge({ name, group }: { name: string; group: GroupId }) {
+function TeamBadge({ name, group }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{name.charAt(0)}</span>
@@ -338,16 +324,7 @@ function TeamBadge({ name, group }: { name: string; group: GroupId }) {
   );
 }
 
-function MatchCard({
-  match, uiDiscipline, venue, score, admin, onChange,
-}: {
-  match: any;
-  uiDiscipline: UiDiscipline;
-  venue: string;
-  score: Score;
-  admin: boolean;
-  onChange: (s: Score) => void;
-}) {
+function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }) {
   return (
     <div className="rounded-2xl border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between text-xs text-muted-foreground border-b pb-2 mb-3">
@@ -387,8 +364,8 @@ function MatchCard({
   );
 }
 
-function StandingsCard({ group, uiDiscipline, discipline, scores }: { group: GroupId; uiDiscipline: UiDiscipline; discipline: Discipline; scores: Record<string, Score> }) {
-  const rows = computeStandings(group, uiDiscipline as unknown as Discipline, scores);
+function StandingsCard({ group, uiDiscipline, discipline, scores }) {
+  const rows = computeStandings(group, uiDiscipline, scores);
   const workingRows = rows.length > 0 ? rows : computeStandings(group, discipline, scores);
 
   return (
@@ -416,7 +393,7 @@ function StandingsCard({ group, uiDiscipline, discipline, scores }: { group: Gro
   );
 }
 
-function KnockoutView({ uiDiscipline }: { uiDiscipline: UiDiscipline }) {
+function KnockoutView({ uiDiscipline }) {
   const items = KNOCKOUTS.filter((k) => k.round === "QF" || k.round === "SF" || k.round === "Final");
   return (
     <div className="space-y-4">
@@ -431,7 +408,7 @@ function KnockoutView({ uiDiscipline }: { uiDiscipline: UiDiscipline }) {
   );
 }
 
-function PollView({ votes, myVote, onCast }: { votes: Record<string, number>; myVote: Province | null; onCast: (p: Province) => void; }) {
+function PollView({ votes, myVote, onCast }) {
   const total = Object.values(votes).reduce((s, n) => s + n, 0);
   return (
     <div className="space-y-4">
@@ -447,7 +424,7 @@ function PollView({ votes, myVote, onCast }: { votes: Record<string, number>; my
               disabled={myVote !== null && myVote !== p}
               className="w-full border rounded-xl p-3 text-left flex justify-between bg-card relative overflow-hidden"
             >
-              <div className="absolute inset-y-0 left-0 bg-blue-500/10" style={{ width: `${pct}%` }} />
+              <div className="absolute inset-y-0 left-0 bg-blue-500/10" style={{ width: pct + "%" }} />
               <span className="font-bold z-10">{p}</span>
               <span className="text-xs font-bold text-muted-foreground z-10">{count} votes ({pct}%)</span>
             </button>
