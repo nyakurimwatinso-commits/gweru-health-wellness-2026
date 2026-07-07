@@ -53,19 +53,19 @@ const UI_DISCIPLINES = [
 ];
 
 function Index() {
-  const [uiDiscipline, setUiDiscipline] = useState("Soccer");
-  const [day, setDay] = useState("mon");
+  const [uiDiscipline, setUiDiscipline] = useState<string>("Soccer");
+  const [day, setDay] = useState<string>("mon");
   
-  const [scores, setScores] = useState({});
-  const [votes, setVotes] = useState({});
-  const [myVote, setMyVote] = useState(null);
+  const [scores, setScores] = useState<Record<string, any>>({});
+  const [votes, setVotes] = useState<Record<string, number>>({});
+  const [myVote, setMyVote] = useState<string | null>(null);
   
-  const [admin, setAdmin] = useState(false);
-  const [pinOpen, setPinOpen] = useState(false);
-  const [pin, setPin] = useState("");
-  const [pinErr, setPinErr] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [admin, setAdmin] = useState<boolean>(false);
+  const [pinOpen, setPinOpen] = useState<boolean>(false);
+  const [pin, setPin] = useState<string>("");
+  const [pinErr, setPinErr] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
   const fetchCloudData = async () => {
     setLoading(true);
@@ -105,15 +105,15 @@ function Index() {
     return () => clearInterval(syncInterval);
   }, []);
 
-  const underlyingDiscipline = useMemo(() => {
+  const underlyingDiscipline = useMemo<string>(() => {
     if (uiDiscipline === "Volleyball (Men)" || uiDiscipline === "Volleyball (Women)") {
       return "Volleyball";
     }
     return uiDiscipline;
   }, [uiDiscipline]);
 
-  const setScore = async (matchId, s) => {
-    const key = uiDiscipline + "::" + matchId;
+  const setScore = async (matchId: string, s: any) => {
+    const key = `${uiDiscipline}::${matchId}`;
     const updatedScores = { ...scores };
     
     if (s === null) {
@@ -135,7 +135,7 @@ function Index() {
     }
   };
 
-  const handleCastVote = async (p) => {
+  const handleCastVote = async (p: string) => {
     if (myVote === p) return;
     setMyVote(p);
     try {
@@ -159,13 +159,13 @@ function Index() {
     }
   };
 
-  const dayMatches = useMemo(() => {
+  const dayMatches = useMemo<any[]>(() => {
     if (day === "ko") return [];
-    const baseMatches = MATCHES.filter((m) => m.day === day);
+    const baseMatches = MATCHES.filter((m: any) => m.day === day);
     const query = searchQuery.trim().toLowerCase();
     if (!query) return baseMatches;
     return baseMatches.filter(
-      (m) =>
+      (m: any) =>
         m.teamA.toLowerCase().includes(query) ||
         m.teamB.toLowerCase().includes(query)
     );
@@ -260,8 +260,8 @@ function Index() {
                     key={m.id}
                     match={m}
                     uiDiscipline={uiDiscipline}
-                    venue={venueFor(m.group, underlyingDiscipline)}
-                    score={scores[uiDiscipline + "::" + m.id] ?? null}
+                    venue={venueFor(m.group, underlyingDiscipline as any)}
+                    score={scores[`${uiDiscipline}::${m.id}`] ?? null}
                     admin={admin}
                     onChange={(s) => setScore(m.id, s)}
                   />
@@ -274,7 +274,7 @@ function Index() {
             </section>
             <section className="space-y-4">
               {Object.keys(GROUPS).map((g) => (
-                <StandingsCard key={g} group={g} uiDiscipline={uiDiscipline} discipline={underlyingDiscipline} scores={scores} />
+                <StandingsCard key={g} group={g as any} uiDiscipline={uiDiscipline} discipline={underlyingDiscipline} scores={scores} />
               ))}
             </section>
           </div>
@@ -312,7 +312,7 @@ function Index() {
   );
 }
 
-function TeamBadge({ name, group }) {
+function TeamBadge({ name, group }: { name: string; group: any }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
       <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{name.charAt(0)}</span>
@@ -324,7 +324,7 @@ function TeamBadge({ name, group }) {
   );
 }
 
-function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }) {
+function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: { match: any; uiDiscipline: string; venue: string; score: any; admin: boolean; onChange: (s: any) => void }) {
   return (
     <div className="rounded-2xl border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between text-xs text-muted-foreground border-b pb-2 mb-3">
@@ -364,8 +364,8 @@ function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }) {
   );
 }
 
-function StandingsCard({ group, uiDiscipline, discipline, scores }) {
-  const rows = computeStandings(group, uiDiscipline, scores);
+function StandingsCard({ group, uiDiscipline, discipline, scores }: { group: any; uiDiscipline: string; discipline: any; scores: any }) {
+  const rows = computeStandings(group, uiDiscipline as any, scores);
   const workingRows = rows.length > 0 ? rows : computeStandings(group, discipline, scores);
 
   return (
@@ -380,7 +380,7 @@ function StandingsCard({ group, uiDiscipline, discipline, scores }) {
           </tr>
         </thead>
         <tbody>
-          {workingRows.map((r) => (
+          {workingRows.map((r: any) => (
             <tr key={r.team} className="border-t">
               <td className="p-2 font-medium">{r.team}</td>
               <td className="p-2 text-center">{r.P}</td>
@@ -393,12 +393,12 @@ function StandingsCard({ group, uiDiscipline, discipline, scores }) {
   );
 }
 
-function KnockoutView({ uiDiscipline }) {
-  const items = KNOCKOUTS.filter((k) => k.round === "QF" || k.round === "SF" || k.round === "Final");
+function KnockoutView({ uiDiscipline }: { uiDiscipline: string }) {
+  const items = KNOCKOUTS.filter((k: any) => k.round === "QF" || k.round === "SF" || k.round === "Final");
   return (
     <div className="space-y-4">
       <h2 className="font-bold">{uiDiscipline} - Knockouts</h2>
-      {items.map((m) => (
+      {items.map((m: any) => (
         <div key={m.id} className="border p-4 rounded-xl bg-card">
           <div className="font-bold text-sm">{m.label}: {m.matchup}</div>
           <div className="text-xs text-muted-foreground mt-1">{m.date} - {m.time} | {m.venue}</div>
@@ -408,7 +408,7 @@ function KnockoutView({ uiDiscipline }) {
   );
 }
 
-function PollView({ votes, myVote, onCast }) {
+function PollView({ votes, myVote, onCast }: { votes: Record<string, number>; myVote: string | null; onCast: (p: string) => void }) {
   const total = Object.values(votes).reduce((s, n) => s + n, 0);
   return (
     <div className="space-y-4">
