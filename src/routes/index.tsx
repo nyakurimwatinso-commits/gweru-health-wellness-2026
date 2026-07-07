@@ -1,15 +1,436 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import {
+  DAYS,
+  GROUPS,
+  KNOCKOUTS,
+  MATCHES,
+  computeStandings,
+  venueFor,
+} from "@/lib/tournament";
+import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw } from "lucide-react";
 
-function CacheBusterComponent() {
+export const Route = createFileRoute("/")({
+  component: Index,
+});
+
+const ADMIN_PIN = "2026";
+const POLL_VOTE_KEY = "hsc-mohcc-poll-vote-v1";
+
+const SCORES_API_URL = "/api/scores";
+const VOTE_API_URL = "/api/vote";
+
+const PROVINCES = [
+  "Bulawayo Metropolitan",
+  "Chitungwiza Hospital",
+  "Harare Metropolitan",
+  "Health Services Commission (HSC)",
+  "Ingutsheni Hospital",
+  "Manicaland",
+  "Mashonaland Central",
+  "Mashonaland East",
+  "Mashonaland West",
+  "Masvingo",
+  "Matabeleland North",
+  "Matabeleland South",
+  "Midlands",
+  "MoHCC Headquarters",
+  "Mpilo Hospital",
+  "Parirenyatwa Hospital",
+  "Sally Mugabe Hospital",
+  "United Bulawayo Hospitals (UBH)",
+];
+
+const UI_DISCIPLINES = [
+  "Soccer",
+  "Volleyball (Men)",
+  "Volleyball (Women)",
+  "Netball",
+  "Darts",
+  "Chess",
+  "Athletics",
+  "Tug of War",
+];
+
+function Index() {
+  const [uiDiscipline, setUiDiscipline] = useState("Soccer");
+  const [day, setDay] = useState("mon");
+  
+  const [scores, setScores] = useState({});
+  const [votes, setVotes] = useState({});
+  const [myVote, setMyVote] = useState(null);
+  
+  const [admin, setAdmin] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinErr, setPinErr] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const fetchCloudData = async () => {
+    setLoading(true);
+    try {
+      const scoresRes = await fetch(SCORES_API_URL);
+      if (scoresRes.ok) {
+        const data = await scoresRes.json();
+        if (data && typeof data === "object") {
+          setScores(data);
+        }
+      }
+
+      const votesRes = await fetch(VOTE_API_URL);
+      if (votesRes.ok) {
+        const data = await votesRes.json();
+        if (data && typeof data === "object") {
+          setVotes(data);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCloudData();
+    try {
+      const savedPick = localStorage.getItem(POLL_VOTE_KEY);
+      if (savedPick) {
+        setMyVote(savedPick);
+      }
+    } catch (e) {}
+
+    const syncInterval = setInterval(fetchCloudData, 20000);
+    return () => clearInterval(syncInterval);
+  }, []);
+
+  const underlyingDiscipline = useMemo(() => {
+    if (uiDiscipline === "Volleyball (Men)" || uiDiscipline === "Volleyball (Women)") {
+      return "Volleyball";
+    }
+    return uiDiscipline;
+  }, [uiDiscipline]);
+
+  const setScore = async (matchId, s) => {
+    const key = uiDiscipline + "::" + matchId;
+    const updatedScores = { ...scores };
+    
+    if (s === null) {
+      delete updatedScores[key];
+    } else {
+      updatedScores[key] = s;
+    }
+    
+    setScores(updatedScores);
+
+    try {
+      await fetch(SCORES_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedScores),
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCastVote = async (p) => {
+    if (myVote === p) return;
+    setMyVote(p);
+    try {
+      localStorage.setItem(POLL_VOTE_KEY, p);
+    } catch (e) {}
+
+    try {
+      const res = await fetch(VOTE_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamName: p }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.votes) {
+          setVotes(data.votes);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const dayMatches = useMemo(() => {
+    if (day === "ko") return [];
+    const baseMatches = MATCHES.filter((m) => m.day === day);
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return baseMatches;
+    return baseMatches.filter(
+      (m) =>
+        m.teamA.toLowerCase().includes(query) ||
+        m.teamB.toLowerCase().includes(query)
+    );
+  }, [day, searchQuery]);
+
   return (
-    <div style={{ padding: "2rem", textAlign: "center", fontFamily: "sans-serif" }}>
-      <h1>System Cache Reset</h1>
-      <p>Building clean route manifest...</p>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="relative overflow-hidden text-white bg-slate-900 px-4 py-10">
+        <div className="mx-auto max-w-6xl flex items-center justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs">
+              <Sparkles className="h-3.5 w-3.5" /> Wellness Festival 2026
+            </div>
+            <h1 className="mt-3 text-3xl font-black sm:text-5xl">
+              HSC/MoHCC Results Hub
+            </h1>
+            <p className="mt-2 flex items-center gap-1 text-sm text-white/80">
+              <MapPin className="h-4 w-4" /> Gweru
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={fetchCloudData} className="rounded-xl bg-white/10 p-3 hover:bg-white/20">
+              <RefreshCw className={"h-5 w-5 " + (loading ? "animate-spin" : "")} />
+            </button>
+            <button onClick={() => (admin ? setAdmin(false) : setPinOpen(true))} className="rounded-xl bg-white/10 p-3 hover:bg-white/20">
+              {admin ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="sticky top-0 z-30 border-b bg-background px-4 py-3">
+        <div className="mx-auto max-w-6xl flex gap-2 overflow-x-auto scrollbar-none">
+          {UI_DISCIPLINES.map((d) => (
+            <button
+              key={d}
+              onClick={() => setUiDiscipline(d)}
+              className={"shrink-0 rounded-full px-4 py-2 text-sm font-bold " + (d === uiDiscipline ? "bg-slate-900 text-white" : "bg-muted")}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-4 pt-4 space-y-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {DAYS.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => setDay(d.id)}
+              className={"rounded-xl border p-2.5 text-sm font-bold " + (d.id === day ? "bg-slate-900 text-white" : "bg-card")}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => setDay("poll")}
+          className={"w-full flex items-center justify-center gap-2 rounded-xl border p-2.5 text-sm font-black uppercase tracking-wide " + (day === "poll" ? "bg-amber-500 text-slate-900" : "bg-card text-amber-600 border-amber-500")}
+        >
+          <Vote className="h-4 w-4" /> Live Fans' Poll
+        </button>
+      </div>
+
+      {day !== "poll" && day !== "ko" && (
+        <div className="mx-auto max-w-6xl px-4 pt-4">
+          <div className="relative flex items-center">
+            <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Team..."
+              className="w-full rounded-xl border bg-card pl-10 pr-4 py-2 text-sm outline-none"
+            />
+          </div>
+        </div>
+      )}
+
+      <main className="mx-auto max-w-6xl px-4 py-6">
+        {day === "poll" ? (
+          <PollView votes={votes} myVote={myVote} onCast={handleCastVote} />
+        ) : day === "ko" ? (
+          <KnockoutView uiDiscipline={uiDiscipline} />
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <section className="space-y-3">
+              {dayMatches.length > 0 ? (
+                dayMatches.map((m) => (
+                  <MatchCard
+                    key={m.id}
+                    match={m}
+                    uiDiscipline={uiDiscipline}
+                    venue={venueFor(m.group, underlyingDiscipline)}
+                    score={scores[uiDiscipline + "::" + m.id] ?? null}
+                    admin={admin}
+                    onChange={(s) => setScore(m.id, s)}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12 border border-dashed rounded-2xl">
+                  <p className="text-sm text-muted-foreground">No matches schedule criteria matches.</p>
+                </div>
+              )}
+            </section>
+            <section className="space-y-4">
+              {Object.keys(GROUPS).map((g) => (
+                <StandingsCard key={g} group={g} uiDiscipline={uiDiscipline} discipline={underlyingDiscipline} scores={scores} />
+              ))}
+            </section>
+          </div>
+        )}
+      </main>
+
+      {pinOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPinOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold">Admin Portal</h2>
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => { setPin(e.target.value); setPinErr(false); }}
+              className="mt-4 w-full rounded-lg border p-2 text-center text-lg font-bold"
+              placeholder="••••"
+            />
+            {pinErr && <p className="mt-2 text-xs text-destructive">Invalid PIN</p>}
+            <div className="mt-4 flex justify-end gap-2">
+              <button onClick={() => setPinOpen(false)} className="px-4 py-2 text-sm">Cancel</button>
+              <button
+                onClick={() => {
+                  if (pin === ADMIN_PIN) { setAdmin(true); setPinOpen(false); setPin(""); }
+                  else setPinErr(true);
+                }}
+                className="bg-slate-900 text-white rounded-lg px-4 py-2 text-sm"
+              >
+                Unlock
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export const Route = createFileRoute("/")({
-  component: CacheBusterComponent,
-});
+function TeamBadge({ name, group }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{name.charAt(0)}</span>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-bold">{name}</div>
+        <div className="text-[10px] text-muted-foreground">Group {group}</div>
+      </div>
+    </div>
+  );
+}
 
+function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }) {
+  return (
+    <div className="rounded-2xl border bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between text-xs text-muted-foreground border-b pb-2 mb-3">
+        <span>Group {match.group}</span>
+        <span>{match.time}</span>
+      </div>
+      <div className="grid grid-cols-[1fr_auto_auto_auto_1fr] items-center gap-2">
+        <TeamBadge name={match.teamA} group={match.group} />
+        {admin ? (
+          <input
+            type="number"
+            value={score?.a ?? ""}
+            onChange={(e) => onChange(e.target.value === "" ? null : { a: parseInt(e.target.value), b: score?.b ?? 0 })}
+            className="w-12 border rounded text-center font-bold"
+          />
+        ) : (
+          <span className="font-bold text-lg px-2">{score?.a ?? "-"}</span>
+        )}
+        <span>:</span>
+        {admin ? (
+          <input
+            type="number"
+            value={score?.b ?? ""}
+            onChange={(e) => onChange(e.target.value === "" ? null : { a: score?.a ?? 0, b: parseInt(e.target.value) })}
+            className="w-12 border rounded text-center font-bold"
+          />
+        ) : (
+          <span className="font-bold text-lg px-2">{score?.b ?? "-"}</span>
+        )}
+        <div className="text-right flex items-center justify-end gap-2">
+          <div className="truncate text-sm font-bold">{match.teamB}</div>
+          <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{match.teamB.charAt(0)}</span>
+        </div>
+      </div>
+      <div className="text-xs text-muted-foreground mt-2">{venue}</div>
+    </div>
+  );
+}
+
+function StandingsCard({ group, uiDiscipline, discipline, scores }) {
+  const rows = computeStandings(group, uiDiscipline, scores);
+  const workingRows = rows.length > 0 ? rows : computeStandings(group, discipline, scores);
+
+  return (
+    <div className="rounded-2xl border overflow-hidden">
+      <div className="bg-slate-800 text-white p-2 font-bold text-sm">Group {group}</div>
+      <table className="w-full text-xs text-left">
+        <thead className="bg-muted">
+          <tr>
+            <th className="p-2">Team</th>
+            <th className="p-2 text-center">P</th>
+            <th className="p-2 text-center">Pts</th>
+          </tr>
+        </thead>
+        <tbody>
+          {workingRows.map((r) => (
+            <tr key={r.team} className="border-t">
+              <td className="p-2 font-medium">{r.team}</td>
+              <td className="p-2 text-center">{r.P}</td>
+              <td className="p-2 text-center font-bold">{r.Pts}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function KnockoutView({ uiDiscipline }) {
+  const items = KNOCKOUTS.filter((k) => k.round === "QF" || k.round === "SF" || k.round === "Final");
+  return (
+    <div className="space-y-4">
+      <h2 className="font-bold">{uiDiscipline} - Knockouts</h2>
+      {items.map((m) => (
+        <div key={m.id} className="border p-4 rounded-xl bg-card">
+          <div className="font-bold text-sm">{m.label}: {m.matchup}</div>
+          <div className="text-xs text-muted-foreground mt-1">{m.date} - {m.time} | {m.venue}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PollView({ votes, myVote, onCast }) {
+  const total = Object.values(votes).reduce((s, n) => s + n, 0);
+  return (
+    <div className="space-y-4">
+      <h2 className="font-bold">Live Fan Standings Poll</h2>
+      <div className="space-y-2">
+        {PROVINCES.map((p) => {
+          const count = votes[p] ?? 0;
+          const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+          return (
+            <button
+              key={p}
+              onClick={() => onCast(p)}
+              disabled={myVote !== null && myVote !== p}
+              className="w-full border rounded-xl p-3 text-left flex justify-between bg-card relative overflow-hidden"
+            >
+              <div className="absolute inset-y-0 left-0 bg-blue-500/10" style={{ width: pct + "%" }} />
+              <span className="font-bold z-10">{p}</span>
+              <span className="text-xs font-bold text-muted-foreground z-10">{count} votes ({pct}%)</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
