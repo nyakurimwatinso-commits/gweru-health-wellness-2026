@@ -67,6 +67,7 @@ function Index() {
   const [pinErr, setPinErr] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [apiStatus, setApiStatus] = useState<{ connected: boolean; message: string } | null>(null);
 
   const fetchCloudData = async () => {
     setLoading(true);
