@@ -218,7 +218,7 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="relative overflow-hidden text-white bg-slate-900 px-4 py-10">
+      <header className="relative overflow-hidden text-primary-foreground bg-primary px-4 py-10">
         <div className="mx-auto max-w-6xl flex items-center justify-between">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs">
@@ -227,7 +227,7 @@ function Index() {
             <h1 className="mt-3 text-3xl font-black sm:text-5xl">
               HSC/MoHCC Results Hub
             </h1>
-            <p className="mt-2 flex items-center gap-1 text-sm text-white/80">
+            <p className="mt-2 flex items-center gap-1 text-sm text-primary-foreground/80">
               <MapPin className="h-4 w-4" /> Gweru
             </p>
           </div>
@@ -248,7 +248,7 @@ function Index() {
             <button
               key={d}
               onClick={() => setUiDiscipline(d)}
-              className={"shrink-0 rounded-full px-4 py-2 text-sm font-bold " + (d === uiDiscipline ? "bg-slate-900 text-white" : "bg-muted")}
+              className={"shrink-0 rounded-full px-4 py-2 text-sm font-bold " + (d === uiDiscipline ? "bg-primary text-primary-foreground" : "bg-muted")}
             >
               {d}
             </button>
@@ -283,7 +283,7 @@ function Index() {
             <button
               key={d.id}
               onClick={() => setDay(d.id)}
-              className={"rounded-xl border p-2.5 text-sm font-bold " + (d.id === day ? "bg-slate-900 text-white" : "bg-card")}
+              className={"rounded-xl border p-2.5 text-sm font-bold " + (d.id === day ? "bg-primary text-primary-foreground" : "bg-card")}
             >
               {d.label}
             </button>
@@ -291,7 +291,7 @@ function Index() {
         </div>
         <button
           onClick={() => setDay("poll")}
-          className={"w-full flex items-center justify-center gap-2 rounded-xl border p-2.5 text-sm font-black uppercase tracking-wide " + (day === "poll" ? "bg-amber-500 text-slate-900" : "bg-card text-amber-600 border-amber-500")}
+          className={"w-full flex items-center justify-center gap-2 rounded-xl border p-2.5 text-sm font-black uppercase tracking-wide " + (day === "poll" ? "bg-gold text-gold-deep" : "bg-card text-gold-deep border-gold")}
         >
           <Vote className="h-4 w-4" /> Live Fans' Poll
         </button>
@@ -366,7 +366,7 @@ function Index() {
                   if (pin === ADMIN_PIN) { setAdmin(true); setPinOpen(false); setPin(""); }
                   else setPinErr(true);
                 }}
-                className="bg-slate-900 text-white rounded-lg px-4 py-2 text-sm"
+                className="bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm"
               >
                 Unlock
               </button>
@@ -381,7 +381,7 @@ function Index() {
 function TeamBadge({ name, group }: { name: string; group: string }) {
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{name.charAt(0)}</span>
+      <span className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">{name.charAt(0)}</span>
       <div className="min-w-0">
         <div className="truncate text-sm font-bold">{name}</div>
         <div className="text-[10px] text-muted-foreground">Group {group}</div>
@@ -422,7 +422,7 @@ function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: any) 
         )}
         <div className="text-right flex items-center justify-end gap-2">
           <div className="truncate text-sm font-bold">{match.teamB}</div>
-          <span className="h-8 w-8 rounded-lg bg-slate-800 text-white flex items-center justify-center font-bold shrink-0">{match.teamB.charAt(0)}</span>
+          <span className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">{match.teamB.charAt(0)}</span>
         </div>
       </div>
       <div className="text-xs text-muted-foreground mt-2">{venue}</div>
@@ -436,7 +436,7 @@ function StandingsCard({ group, uiDiscipline, discipline, scores }: { group: any
 
   return (
     <div className="rounded-2xl border overflow-hidden bg-card text-card-foreground">
-      <div className="bg-slate-800 text-white p-2 font-bold text-sm">Group {group}</div>
+      <div className="bg-primary text-primary-foreground p-2 font-bold text-sm">Group {group}</div>
       <table className="w-full text-xs text-left">
         <thead className="bg-muted text-muted-foreground">
           <tr>
