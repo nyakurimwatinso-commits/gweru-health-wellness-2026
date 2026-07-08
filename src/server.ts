@@ -7,9 +7,14 @@ type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
 
-// Define the environment type to include your new KV namespace binding
+// Define the environment type to include your new KV namespace binding.
+// Typed loosely so the build doesn't require Cloudflare Workers types.
+type KVLike = {
+  get: (key: string) => Promise<string | null>;
+  put: (key: string, value: string) => Promise<void>;
+};
 type Env = {
-  HSC_SCORES: KVNamespace;
+  HSC_SCORES?: KVLike;
 };
 
 let serverEntryPromise: Promise<ServerEntry> | undefined;
