@@ -186,14 +186,21 @@ function Index() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teamName: p }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.votes) {
-          setVotes(data.votes);
-        }
+      if (!res.ok) {
+        await checkApiStatus();
+        return;
+      }
+      const data = await res.json();
+      if (data && data.success === false) {
+        await checkApiStatus();
+        return;
+      }
+      if (data.votes) {
+        setVotes(data.votes);
       }
     } catch (err) {
       console.error(err);
+      await checkApiStatus();
     }
   };
 
