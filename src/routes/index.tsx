@@ -69,8 +69,21 @@ function Index() {
   const [loading, setLoading] = useState(false);
   const [apiStatus, setApiStatus] = useState<{ connected: boolean; message: string } | null>(null);
 
+  const checkApiStatus = async () => {
+    try {
+      const res = await fetch("/api/status");
+      if (res.ok) {
+        const data = await res.json();
+        setApiStatus({ connected: data.connected === true, message: data.message });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const fetchCloudData = async () => {
     setLoading(true);
+    let hadError = false;
     try {
       const scoresRes = await fetch(SCORES_API_URL);
       if (scoresRes.ok) {
@@ -78,6 +91,8 @@ function Index() {
         if (data && typeof data === "object") {
           setScores(data);
         }
+      } else {
+        hadError = true;
       }
 
       const votesRes = await fetch(VOTE_API_URL);
@@ -86,11 +101,17 @@ function Index() {
         if (data && typeof data === "object") {
           setVotes(data);
         }
+      } else {
+        hadError = true;
       }
     } catch (err) {
       console.error(err);
+      hadError = true;
     } finally {
       setLoading(false);
+    }
+    if (hadError) {
+      await checkApiStatus();
     }
   };
 
