@@ -154,13 +154,22 @@ function Index() {
     setScores(updatedScores);
 
     try {
-      await fetch(SCORES_API_URL, {
+      const res = await fetch(SCORES_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedScores),
       });
+      if (!res.ok) {
+        await checkApiStatus();
+        return;
+      }
+      const data = await res.json();
+      if (data && data.success === false) {
+        await checkApiStatus();
+      }
     } catch (err) {
       console.error(err);
+      await checkApiStatus();
     }
   };
 
