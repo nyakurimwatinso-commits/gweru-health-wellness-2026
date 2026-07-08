@@ -1,0 +1,6 @@
+name = "gweru-health-wellness-2026"
+compatibility_date = "2026-07-08"
+
+[[kv_namespaces]]
+binding = "HSC_SCORES"
+id = "e1ae2e40327c48b4aa40ae87d6c4355a"
