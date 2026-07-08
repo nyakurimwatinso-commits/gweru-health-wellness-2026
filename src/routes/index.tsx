@@ -269,7 +269,7 @@ function Index() {
                     venue={venueFor(m.group, underlyingDiscipline)}
                     score={scores[uiDiscipline + "::" + m.id] ?? null}
                     admin={admin}
-                    onChange={(s) => setScore(m.id, s)}
+                    onChange={(s: { a: number; b: number } | null) => setScore(m.id, s)}
                   />
                 ))
               ) : (
