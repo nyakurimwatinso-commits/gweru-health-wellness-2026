@@ -117,6 +117,7 @@ function Index() {
 
   useEffect(() => {
     fetchCloudData();
+    checkApiStatus();
     try {
       const savedPick = localStorage.getItem(POLL_VOTE_KEY);
       if (savedPick) {
