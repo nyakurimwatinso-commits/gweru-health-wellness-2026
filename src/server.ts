@@ -70,6 +70,18 @@ export default {
     // -------------------------------------------------------------
     if (url.pathname === "/api/scores") {
       try {
+        if (!typedEnv?.HSC_SCORES) {
+          // KV binding not configured (e.g. local dev). Return empty defaults.
+          if (request.method === "GET") {
+            return new Response(JSON.stringify({}), { status: 200, headers: corsHeaders });
+          }
+          if (request.method === "POST") {
+            return new Response(
+              JSON.stringify({ success: false, message: "KV not configured in this environment" }),
+              { status: 200, headers: corsHeaders },
+            );
+          }
+        }
         if (request.method === "GET") {
           const rawData = await typedEnv.HSC_SCORES.get("match_data");
           return new Response(rawData || JSON.stringify({ matches: [] }), {
@@ -101,6 +113,17 @@ export default {
     // -------------------------------------------------------------
     if (url.pathname === "/api/vote") {
       try {
+        if (!typedEnv?.HSC_SCORES) {
+          if (request.method === "GET") {
+            return new Response(JSON.stringify({}), { status: 200, headers: corsHeaders });
+          }
+          if (request.method === "POST") {
+            return new Response(
+              JSON.stringify({ success: false, votes: {} }),
+              { status: 200, headers: corsHeaders },
+            );
+          }
+        }
         if (request.method === "GET") {
           const rawVotes = await typedEnv.HSC_SCORES.get("poll_votes");
           return new Response(rawVotes || JSON.stringify({}), {
