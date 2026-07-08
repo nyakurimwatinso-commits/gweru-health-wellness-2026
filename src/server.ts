@@ -75,20 +75,19 @@ export default {
     // -------------------------------------------------------------
     if (url.pathname === "/api/scores") {
       try {
-        if (!typedEnv?.HSC_SCORES) {
+        const kv = typedEnv?.HSC_SCORES;
+        if (!kv) {
           // KV binding not configured (e.g. local dev). Return empty defaults.
-          if (request.method === "GET") {
-            return new Response(JSON.stringify({}), { status: 200, headers: corsHeaders });
-          }
           if (request.method === "POST") {
             return new Response(
               JSON.stringify({ success: false, message: "KV not configured in this environment" }),
               { status: 200, headers: corsHeaders },
             );
           }
+          return new Response(JSON.stringify({}), { status: 200, headers: corsHeaders });
         }
         if (request.method === "GET") {
-          const rawData = await typedEnv.HSC_SCORES.get("match_data");
+          const rawData = await kv.get("match_data");
           return new Response(rawData || JSON.stringify({ matches: [] }), {
             status: 200,
             headers: corsHeaders,
@@ -99,7 +98,7 @@ export default {
           const body = await request.text();
           // Simple validation to ensure it's valid json
           JSON.parse(body); 
-          await typedEnv.HSC_SCORES.put("match_data", body);
+          await kv.put("match_data", body);
           return new Response(JSON.stringify({ success: true, message: "Scores updated successfully" }), {
             status: 200,
             headers: corsHeaders,
@@ -118,19 +117,18 @@ export default {
     // -------------------------------------------------------------
     if (url.pathname === "/api/vote") {
       try {
-        if (!typedEnv?.HSC_SCORES) {
-          if (request.method === "GET") {
-            return new Response(JSON.stringify({}), { status: 200, headers: corsHeaders });
-          }
+        const kv = typedEnv?.HSC_SCORES;
+        if (!kv) {
           if (request.method === "POST") {
             return new Response(
               JSON.stringify({ success: false, votes: {} }),
               { status: 200, headers: corsHeaders },
             );
           }
+          return new Response(JSON.stringify({}), { status: 200, headers: corsHeaders });
         }
         if (request.method === "GET") {
-          const rawVotes = await typedEnv.HSC_SCORES.get("poll_votes");
+          const rawVotes = await kv.get("poll_votes");
           return new Response(rawVotes || JSON.stringify({}), {
             status: 200,
             headers: corsHeaders,
@@ -144,11 +142,11 @@ export default {
           }
 
           // Get existing votes, increment target, save back
-          const rawVotes = await typedEnv.HSC_SCORES.get("poll_votes");
+          const rawVotes = await kv.get("poll_votes");
           const votesMap = rawVotes ? JSON.parse(rawVotes) : {};
           votesMap[teamName] = (votesMap[teamName] || 0) + 1;
 
-          await typedEnv.HSC_SCORES.put("poll_votes", JSON.stringify(votesMap));
+          await kv.put("poll_votes", JSON.stringify(votesMap));
           return new Response(JSON.stringify({ success: true, votes: votesMap }), {
             status: 200,
             headers: corsHeaders,
