@@ -160,6 +160,61 @@ export default {
       }
     }
 
+    // -------------------------------------------------------------
+    // STATUS ENDPOINT: /api/status
+    // Reports whether the HSC_SCORES KV namespace is bound and usable.
+    // -------------------------------------------------------------
+    if (url.pathname === "/api/status") {
+      try {
+        const kv = typedEnv?.HSC_SCORES;
+        const isConnected =
+          kv !== undefined &&
+          kv !== null &&
+          typeof (kv as KVLike).get === "function" &&
+          typeof (kv as KVLike).put === "function";
+
+        if (!isConnected) {
+          return new Response(
+            JSON.stringify({
+              connected: false,
+              status: "error",
+              message: "HSC_SCORES KV namespace is not connected. Bind a KV namespace named HSC_SCORES in your Cloudflare Workers/Pages environment and redeploy.",
+              environment: "local-or-unbound",
+            }),
+            { status: 200, headers: corsHeaders },
+          );
+        }
+
+        // Attempt a lightweight KV ping to confirm read/write access.
+        const pingKey = "__status_ping__";
+        const pingValue = Date.now().toString();
+        await kv.put(pingKey, pingValue);
+        const fetched = await kv.get(pingKey);
+
+        return new Response(
+          JSON.stringify({
+            connected: fetched === pingValue,
+            status: fetched === pingValue ? "ok" : "degraded",
+            message:
+              fetched === pingValue
+                ? "HSC_SCORES KV namespace is connected and operational."
+                : "HSC_SCORES KV namespace is bound but reads may not match writes. Check permissions and replication.",
+            environment: "production",
+          }),
+          { status: 200, headers: corsHeaders },
+        );
+      } catch (statusError: any) {
+        return new Response(
+          JSON.stringify({
+            connected: false,
+            status: "error",
+            message: `HSC_SCORES KV namespace check failed: ${statusError.message}`,
+          }),
+          { status: 500, headers: corsHeaders },
+        );
+      }
+    }
+
     // Standard frontend rendering fallback route
     try {
       const handler = await getServerEntry();
