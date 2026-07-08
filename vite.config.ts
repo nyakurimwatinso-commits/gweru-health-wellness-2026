@@ -12,4 +12,16 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    cloudflare: {
+      config: {
+        kv_namespaces: [
+          {
+            binding: "HSC_SCORES",
+            id: "e1ae2e40327c48b4aa40ae87d6c4355a"
+          }
+        ]
+      }
+    }
+  }
 });
