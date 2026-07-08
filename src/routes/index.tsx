@@ -9,7 +9,7 @@ import {
   venueFor,
   type Discipline,
 } from "@/lib/tournament";
-import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw } from "lucide-react";
+import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -67,9 +67,23 @@ function Index() {
   const [pinErr, setPinErr] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [apiStatus, setApiStatus] = useState<{ connected: boolean; message: string } | null>(null);
+
+  const checkApiStatus = async () => {
+    try {
+      const res = await fetch("/api/status");
+      if (res.ok) {
+        const data = await res.json();
+        setApiStatus({ connected: data.connected === true, message: data.message });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchCloudData = async () => {
     setLoading(true);
+    let hadError = false;
     try {
       const scoresRes = await fetch(SCORES_API_URL);
       if (scoresRes.ok) {
@@ -77,6 +91,8 @@ function Index() {
         if (data && typeof data === "object") {
           setScores(data);
         }
+      } else {
+        hadError = true;
       }
 
       const votesRes = await fetch(VOTE_API_URL);
@@ -85,16 +101,23 @@ function Index() {
         if (data && typeof data === "object") {
           setVotes(data);
         }
+      } else {
+        hadError = true;
       }
     } catch (err) {
       console.error(err);
+      hadError = true;
     } finally {
       setLoading(false);
+    }
+    if (hadError) {
+      await checkApiStatus();
     }
   };
 
   useEffect(() => {
     fetchCloudData();
+    checkApiStatus();
     try {
       const savedPick = localStorage.getItem(POLL_VOTE_KEY);
       if (savedPick) {
@@ -131,13 +154,22 @@ function Index() {
     setScores(updatedScores);
 
     try {
-      await fetch(SCORES_API_URL, {
+      const res = await fetch(SCORES_API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedScores),
       });
+      if (!res.ok) {
+        await checkApiStatus();
+        return;
+      }
+      const data = await res.json();
+      if (data && data.success === false) {
+        await checkApiStatus();
+      }
     } catch (err) {
       console.error(err);
+      await checkApiStatus();
     }
   };
 
@@ -154,14 +186,21 @@ function Index() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teamName: p }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.votes) {
-          setVotes(data.votes);
-        }
+      if (!res.ok) {
+        await checkApiStatus();
+        return;
+      }
+      const data = await res.json();
+      if (data && data.success === false) {
+        await checkApiStatus();
+        return;
+      }
+      if (data.votes) {
+        setVotes(data.votes);
       }
     } catch (err) {
       console.error(err);
+      await checkApiStatus();
     }
   };
 
@@ -216,6 +255,27 @@ function Index() {
           ))}
         </div>
       </div>
+
+      {apiStatus && !apiStatus.connected && (
+        <div className="bg-gold-deep text-white">
+          <div className="mx-auto max-w-6xl px-4 py-3">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm">Live updates are offline</p>
+                <p className="text-xs text-white/90 mt-0.5 line-clamp-3">{apiStatus.message}</p>
+                <p className="text-xs font-bold mt-1.5">Ask the event admin to connect the HSC_SCORES KV database in Cloudflare, then tap Refresh.</p>
+              </div>
+              <button
+                onClick={() => { fetchCloudData(); checkApiStatus(); }}
+                className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-bold hover:bg-white/30"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 pt-4 space-y-2">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
