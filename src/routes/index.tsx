@@ -9,7 +9,7 @@ import {
   venueFor,
   type Discipline,
 } from "@/lib/tournament";
-import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw } from "lucide-react";
+import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw, AlertTriangle } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Index,
