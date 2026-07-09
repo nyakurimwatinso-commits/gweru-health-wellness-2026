@@ -256,26 +256,6 @@ function Index() {
         </div>
       </div>
 
-      {apiStatus && !apiStatus.connected && (
-        <div className="bg-gold-deep text-white">
-          <div className="mx-auto max-w-6xl px-4 py-3">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm">Live updates are offline</p>
-                <p className="text-xs text-white/90 mt-0.5 line-clamp-3">{apiStatus.message}</p>
-                <p className="text-xs font-bold mt-1.5">Ask the event admin to connect the HSC_SCORES KV database in Cloudflare, then tap Refresh.</p>
-              </div>
-              <button
-                onClick={() => { fetchCloudData(); checkApiStatus(); }}
-                className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-bold hover:bg-white/30"
-              >
-                Refresh
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="mx-auto max-w-6xl px-4 pt-4 space-y-2">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
