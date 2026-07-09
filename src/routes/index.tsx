@@ -363,7 +363,7 @@ function TeamBadge({ name, group }: { name: string; group: string }) {
     <div className="flex items-center gap-2 min-w-0">
       <span className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">{name.charAt(0)}</span>
       <div className="min-w-0">
-        <div className="truncate text-sm font-bold">{name}</div>
+        <div className="text-sm font-bold break-words leading-tight">{name}</div>
         <div className="text-[10px] text-muted-foreground">Group {group}</div>
       </div>
     </div>
@@ -435,8 +435,8 @@ function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: any) 
         ) : (
           <span className="font-bold text-lg px-2">{score?.b ?? "-"}</span>
         )}
-        <div className="text-right flex items-center justify-end gap-2">
-          <div className="truncate text-sm font-bold">{match.teamB}</div>
+        <div className="flex items-center justify-end gap-2 min-w-0">
+          <div className="text-sm font-bold break-words leading-tight text-right">{match.teamB}</div>
           <span className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">{match.teamB.charAt(0)}</span>
         </div>
       </div>
