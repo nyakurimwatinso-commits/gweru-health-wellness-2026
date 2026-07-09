@@ -226,17 +226,30 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="relative overflow-hidden text-primary-foreground bg-primary px-4 py-10">
-        <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs">
-              <Sparkles className="h-3.5 w-3.5" /> Wellness Festival 2026
+        <div className="mx-auto max-w-6xl flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <img
+              src={mohccLogo}
+              alt="Zimbabwe Ministry of Health and Child Care logo"
+              width={512}
+              height={512}
+              loading="lazy"
+              className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white p-1 shrink-0 shadow-md"
+            />
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs">
+                <Sparkles className="h-3.5 w-3.5" /> Wellness Festival 2026
+              </div>
+              <h1 className="mt-2 text-2xl font-black sm:text-5xl">
+                HSC/MoHCC Results Hub
+              </h1>
+              <p className="mt-1 text-sm font-bold italic text-primary-foreground/95">
+                Stronger together — Healthier together
+              </p>
+              <p className="mt-1 flex items-center gap-1 text-xs text-primary-foreground/80">
+                <MapPin className="h-4 w-4" /> Gweru
+              </p>
             </div>
-            <h1 className="mt-3 text-3xl font-black sm:text-5xl">
-              HSC/MoHCC Results Hub
-            </h1>
-            <p className="mt-2 flex items-center gap-1 text-sm text-primary-foreground/80">
-              <MapPin className="h-4 w-4" /> Gweru
-            </p>
           </div>
           <div className="flex gap-2">
             <button onClick={fetchCloudData} className="rounded-xl bg-white/10 p-3 hover:bg-white/20">
