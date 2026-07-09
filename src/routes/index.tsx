@@ -391,6 +391,41 @@ function TeamBadge({ name, group }: { name: string; group: string }) {
 }
 
 function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: any) {
+  const [draftA, setDraftA] = useState<string>(score?.a ?? "");
+  const [draftB, setDraftB] = useState<string>(score?.b ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setDraftA(score?.a ?? "");
+    setDraftB(score?.b ?? "");
+  }, [score?.a, score?.b]);
+
+  const dirty =
+    String(draftA) !== String(score?.a ?? "") ||
+    String(draftB) !== String(score?.b ?? "");
+
+  const handleSave = async () => {
+    setSaving(true);
+    if (draftA === "" && draftB === "") {
+      await onChange(null);
+    } else {
+      await onChange({
+        a: draftA === "" ? 0 : parseInt(String(draftA)),
+        b: draftB === "" ? 0 : parseInt(String(draftB)),
+      });
+    }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  const handleClear = async () => {
+    setDraftA("");
+    setDraftB("");
+    await onChange(null);
+  };
+
   return (
     <div className="rounded-2xl border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between text-xs text-muted-foreground border-b pb-2 mb-3">
@@ -402,8 +437,8 @@ function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: any) 
         {admin ? (
           <input
             type="number"
-            value={score?.a ?? ""}
-            onChange={(e) => onChange(e.target.value === "" ? null : { a: parseInt(e.target.value), b: score?.b ?? 0 })}
+            value={draftA}
+            onChange={(e) => setDraftA(e.target.value)}
             className="w-12 border rounded text-center font-bold text-foreground bg-background"
           />
         ) : (
@@ -413,8 +448,8 @@ function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: any) 
         {admin ? (
           <input
             type="number"
-            value={score?.b ?? ""}
-            onChange={(e) => onChange(e.target.value === "" ? null : { a: score?.a ?? 0, b: parseInt(e.target.value) })}
+            value={draftB}
+            onChange={(e) => setDraftB(e.target.value)}
             className="w-12 border rounded text-center font-bold text-foreground bg-background"
           />
         ) : (
@@ -425,7 +460,26 @@ function MatchCard({ match, uiDiscipline, venue, score, admin, onChange }: any) 
           <span className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold shrink-0">{match.teamB.charAt(0)}</span>
         </div>
       </div>
-      <div className="text-xs text-muted-foreground mt-2">{venue}</div>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="text-xs text-muted-foreground">{venue}</div>
+        {admin && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClear}
+              className="rounded-lg border px-3 py-1 text-xs font-bold hover:bg-muted"
+            >
+              Clear
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || !dirty}
+              className="rounded-lg bg-primary text-primary-foreground px-3 py-1 text-xs font-bold disabled:opacity-50"
+            >
+              {saving ? "Saving..." : saved ? "Saved ✓" : "Save"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
