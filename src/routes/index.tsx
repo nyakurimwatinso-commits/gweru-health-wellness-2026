@@ -158,6 +158,7 @@ function Index() {
     }
     
     setScores(updatedScores);
+    lastSaveAtRef.current = Date.now();
 
     try {
       const res = await fetch(SCORES_API_URL, {
