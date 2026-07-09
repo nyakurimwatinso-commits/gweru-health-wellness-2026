@@ -10,6 +10,7 @@ import {
   type Discipline,
 } from "@/lib/tournament";
 import { MapPin, Clock, Trophy, Lock, Unlock, Sparkles, Medal, Vote, Search, RefreshCw, AlertTriangle } from "lucide-react";
+import mohccLogo from "@/assets/mohcc-logo.png";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -60,6 +61,7 @@ function Index() {
   const [scores, setScores] = useState<Record<string, any>>({});
   const [votes, setVotes] = useState<Record<string, number>>({});
   const [myVote, setMyVote] = useState<string | null>(null);
+  const lastSaveAtRef = useRef<number>(0);
   
   const [admin, setAdmin] = useState(false);
   const [pinOpen, setPinOpen] = useState(false);
@@ -82,6 +84,10 @@ function Index() {
   };
 
   const fetchCloudData = async () => {
+    // Skip auto-sync briefly after a save — Cloudflare KV is eventually
+    // consistent so a GET right after a POST can return stale data and
+    // wipe just-saved results.
+    if (Date.now() - lastSaveAtRef.current < 60000) return;
     setLoading(true);
     let hadError = false;
     try {
